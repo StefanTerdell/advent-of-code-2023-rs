@@ -6,6 +6,8 @@ mod day2_1;
 mod day2_2;
 mod day3_1;
 mod day3_2;
+mod day4_1;
+mod day4_2;
 
 fn main() -> Result<()> {
     day1_1::main();
@@ -14,6 +16,8 @@ fn main() -> Result<()> {
     day2_2::main()?;
     day3_1::main()?;
     day3_2::main()?;
+    day4_1::main()?;
+    day4_2::main()?;
 
     Ok(())
 }
