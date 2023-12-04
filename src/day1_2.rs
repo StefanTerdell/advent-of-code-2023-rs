@@ -1,4 +1,85 @@
-ckmb52fldxkseven3fkjgcbzmnr7
+use anyhow::{anyhow, Result};
+
+fn get_digit(input: &str) -> Option<u32> {
+    if let Some(first) = input.chars().next() {
+        if let Some(digit) = first.to_digit(10) {
+            return Some(digit);
+        }
+    }
+
+    for (index, text) in [
+        "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+    ]
+    .iter()
+    .enumerate()
+    {
+        if input.starts_with(text) {
+            return Some(index as u32);
+        }
+    }
+
+    None
+}
+
+fn get_digits(line: &str) -> Result<u32> {
+    let len = line.len();
+
+    let mut first: Option<u32> = None;
+    let mut last: Option<u32> = None;
+
+    for i in 0..len {
+        if let Some(digit) = get_digit(&line[i..len]) {
+            if first.is_none() {
+                first = Some(digit);
+            }
+
+            last = Some(digit);
+        }
+    }
+
+    let first = first.ok_or(anyhow!("expected first digit"))?;
+    let last = last.ok_or(anyhow!("expected last digit"))?;
+
+    Ok(first * 10 + last)
+}
+
+fn sum_lines(lines: &Vec<String>) -> Result<u32> {
+    let mut sum = 0;
+
+    for line in lines.iter() {
+        sum += get_digits(line)?;
+    }
+
+    Ok(sum)
+}
+
+fn process(input: &str) -> Result<u32> {
+    sum_lines(&input.lines().map(|l| l.to_string()).collect())
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test() {
+        let input = "two1nine
+eightwothree
+abcone2threexyz
+xtwone3four
+4nineeightseven2
+zoneight234
+7pqrstsixteen";
+
+        assert_eq!(process(input).unwrap(), 281);
+    }
+}
+
+pub fn main() {
+    println!(
+        "1.2: {}",
+        process(
+            "ckmb52fldxkseven3fkjgcbzmnr7
 gckhqpb6twoqnjxqplthree2fourkspnsnzxlz1
 2onetwocrgbqm7
 frkh2nineqmqxrvdsevenfive
@@ -997,4 +1078,8 @@ pseven3threeeightseven
 five2two7hstbbqzrninegbtwo2
 eightfblzpmhs4
 fbbdeightzzsdffh8jbjzxkclj
-3nine6five1
+3nine6five1"
+        )
+        .unwrap()
+    );
+}

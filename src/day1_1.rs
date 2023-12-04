@@ -1,4 +1,61 @@
-ckmb52fldxkseven3fkjgcbzmnr7
+use anyhow::{anyhow, Result};
+
+fn get_digits(line: &str) -> Result<u32> {
+    let chars = line.chars();
+
+    let mut first: Option<u32> = None;
+    let mut last: Option<u32> = None;
+
+    for char in chars {
+        if let Some(digit) = char.to_digit(10) {
+            if first.is_none() {
+                first = Some(digit);
+            }
+
+            last = Some(digit);
+        }
+    }
+
+    let first = first.ok_or(anyhow!("expected digit"))?;
+    let last = last.ok_or(anyhow!("expected digit"))?;
+
+    Ok(first * 10 + last)
+}
+
+fn sum_lines(lines: &Vec<String>) -> Result<u32> {
+    let mut sum = 0;
+
+    for line in lines.iter() {
+        sum += get_digits(line)?;
+    }
+
+    Ok(sum)
+}
+
+pub fn process(input: &str) -> Result<u32> {
+    sum_lines(&input.lines().map(|l| l.to_string()).collect())
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn small() {
+        let input = "1abc2
+pqr3stu8vwx
+a1b2c3d4e5f
+treb7uchet";
+
+        assert_eq!(process(input).unwrap(), 142);
+    }
+}
+
+pub fn main() {
+    println!(
+        "1.1: {}",
+        process(
+            "ckmb52fldxkseven3fkjgcbzmnr7
 gckhqpb6twoqnjxqplthree2fourkspnsnzxlz1
 2onetwocrgbqm7
 frkh2nineqmqxrvdsevenfive
@@ -997,4 +1054,8 @@ pseven3threeeightseven
 five2two7hstbbqzrninegbtwo2
 eightfblzpmhs4
 fbbdeightzzsdffh8jbjzxkclj
-3nine6five1
+3nine6five1"
+        )
+        .unwrap()
+    );
+}

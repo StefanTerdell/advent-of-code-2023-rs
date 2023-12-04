@@ -1,8 +1,0 @@
-int = { ASCII_DIGIT+ }
-color = { "red" | "green" | "blue" }
-color_block = { int ~ " " ~ color }
-id = { "Game " ~ int ~ ": " }
-set = { color_block ~ (", " ~ color_block)* }
-line = { id ~ set ~ ("; " ~ set)* }
-file = { SOI ~ (line ~ ("\r\n" | "\n"))+ ~ EOI }
-// file = { SOI ~ line ~ (("\r\n" | "\n") ~ line)* ~ EOI }
