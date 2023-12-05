@@ -1,42 +1,54 @@
 use anyhow::{anyhow, Result};
+use std::collections::HashSet;
+
+struct Adder {
+    instances: usize,
+    lifetime: usize,
+}
 
 fn process(input: &str) -> Result<usize> {
-    let mut total = 0;
-    let mut stack = vec![];
+    let mut total_instances = 0;
+    let mut stack: Vec<Adder> = vec![];
 
     for line in input.lines() {
-        let mut data = line.split(": ").nth(1).ok_or(anyhow!(""))?.split('|');
-        let winning: Vec<usize> = data
-            .nth(0)
-            .ok_or(anyhow!(""))?
-            .split(' ')
-            .filter_map(|x| if let Ok(n) = x.parse() { Some(n) } else { None })
+        let mut sections = line
+            .split(": ")
+            .nth(1)
+            .ok_or(anyhow!("Expected line be to be splittable by \": \""))?
+            .split(" | ");
+        let winning: HashSet<usize> = sections
+            .next()
+            .ok_or(anyhow!("Expected line be to splittable by \" | \""))?
+            .split_ascii_whitespace()
+            .filter_map(|c| if let Ok(n) = c.parse() { Some(n) } else { None })
             .collect();
-        let numbers: Vec<usize> = data
-            .nth(0)
-            .ok_or(anyhow!(""))?
-            .split(' ')
-            .filter_map(|x| if let Ok(n) = x.parse() { Some(n) } else { None })
+        let numbers: HashSet<usize> = sections
+            .next()
+            .ok_or(anyhow!("Expected line be to splittable by \" | \""))?
+            .split_ascii_whitespace()
+            .filter_map(|c| if let Ok(n) = c.parse() { Some(n) } else { None })
             .collect();
 
-        let score = numbers.iter().filter(|n| winning.contains(&n)).count();
-        let instances = stack.len() + 1;
+        let score = numbers.intersection(&winning).count();
+        let copies = stack.iter().fold(0, |a, s| a + s.instances);
+        let instances = 1 + copies;
 
-        total += instances;
+        total_instances += instances;
 
-        stack.retain_mut(|x| {
-            *x -= 1;
-            *x > 0
+        stack.retain_mut(|i| {
+            i.lifetime -= 1;
+            i.lifetime > 0
         });
 
         if score > 0 {
-            for _ in 0..instances {
-                stack.push(score);
-            }
+            stack.push(Adder {
+                instances,
+                lifetime: score,
+            });
         }
     }
 
-    Ok(total)
+    Ok(total_instances)
 }
 
 #[cfg(test)]
