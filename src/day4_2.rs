@@ -16,6 +16,7 @@ fn process(input: &str) -> Result<usize> {
             .nth(1)
             .ok_or(anyhow!("Expected line be to be splittable by \": \""))?
             .split(" | ");
+
         let winning: HashSet<usize> = sections
             .next()
             .ok_or(anyhow!("Expected line be to splittable by \" | \""))?

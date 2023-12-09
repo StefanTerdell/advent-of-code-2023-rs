@@ -51,7 +51,7 @@ treb7uchet";
     }
 }
 
-pub fn main() {
+pub fn main() -> Result<()> {
     println!(
         "1.1: {}",
         process(
@@ -1055,7 +1055,8 @@ five2two7hstbbqzrninegbtwo2
 eightfblzpmhs4
 fbbdeightzzsdffh8jbjzxkclj
 3nine6five1"
-        )
-        .unwrap()
+        )?
     );
+
+    Ok(())
 }
