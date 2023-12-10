@@ -21,7 +21,7 @@ fn main() -> Result<()> {
     day4_1::main()?;
     day4_2::main()?;
     day5_1::main()?;
-    day5_2::main()?;
+    // day5_2::main()?;
 
     Ok(())
 }

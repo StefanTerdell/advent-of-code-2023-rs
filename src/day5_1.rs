@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{alpha1, digit1, line_ending, multispace1, space1},
+    character::complete::{alpha1, line_ending, multispace1, space1, u64},
     multi::{many1, separated_list1},
     sequence::{preceded, terminated, tuple},
     IResult,
@@ -10,11 +10,9 @@ use nom::{
 
 fn parse_seeds(input: &str) -> IResult<&str, Vec<u64>> {
     let (rest, numbers) = terminated(
-        preceded(tag("seeds: "), separated_list1(space1, digit1)),
+        preceded(tag("seeds: "), separated_list1(space1, u64)),
         multispace1,
     )(input)?;
-
-    let numbers: Vec<u64> = numbers.iter().map(|n| n.parse().unwrap()).collect();
 
     Ok((rest, numbers))
 }
@@ -54,15 +52,14 @@ impl Block {
 }
 
 fn parse_thruple(input: &str) -> IResult<&str, Thruple> {
-    let (rest, values) =
-        tuple((digit1, preceded(space1, digit1), preceded(space1, digit1)))(input)?;
+    let (rest, values) = tuple((u64, preceded(space1, u64), preceded(space1, u64)))(input)?;
 
     Ok((
         &rest,
         Thruple {
-            dest_range_start: values.0.parse().unwrap(),
-            src_range_start: values.1.parse().unwrap(),
-            range: values.2.parse().unwrap(),
+            dest_range_start: values.0,
+            src_range_start: values.1,
+            range: values.2,
         },
     ))
 }
