@@ -35,11 +35,6 @@ fn point(input: &str) -> IResult<&str, Point> {
     Ok((rest, Point(a, b, c)))
 }
 
-impl Point {
-    pub const AAA: Point = Point('A', 'A', 'A');
-    pub const ZZZ: Point = Point('Z', 'Z', 'Z');
-}
-
 fn fork(input: &str) -> IResult<&str, (Point, Fork)> {
     let (rest, key) = point(input)?;
     let (rest, left) = preceded(tag(" = ("), point)(rest)?;
@@ -73,23 +68,58 @@ fn map(input: &str) -> IResult<&str, Map> {
     ))
 }
 
-fn count_steps(map: &Map) -> usize {
-    let mut key = &Point::AAA;
-    let mut steps = 0;
-
-    while key != &Point::ZZZ {
-        let wp = map.forks.get(key).expect("value on key {key}");
-        let dir = &map.directions[steps % map.directions.len()];
-
-        key = match dir {
-            Direction::Left => &wp.left,
-            Direction::Right => &wp.right,
-        };
-
-        steps += 1;
+fn greatest_common_divisor(mut a: usize, mut b: usize) -> usize {
+    if a == b {
+        return a;
     }
 
-    steps
+    if b > a {
+        let temp = a;
+        a = b;
+        b = temp;
+    }
+
+    while b > 0 {
+        let temp = a;
+        a = b;
+        b = temp % b;
+    }
+
+    a
+}
+
+fn lowest_common_multiplier(a: usize, b: usize) -> usize {
+    a * (b / greatest_common_divisor(a, b))
+}
+
+fn count_steps(map: &Map) -> usize {
+    map.forks
+        .keys()
+        .filter(|key| key.2 == 'A')
+        .map(|start_key| {
+            let mut key = start_key;
+            map.directions
+                .iter()
+                .cycle()
+                .enumerate()
+                .find_map(|(index, dir)| {
+                    let wp = map.forks.get(key).expect("valid key");
+
+                    key = match dir {
+                        Direction::Left => &wp.left,
+                        Direction::Right => &wp.right,
+                    };
+
+                    if key.2 == 'Z' {
+                        Some(index + 1)
+                    } else {
+                        None
+                    }
+                })
+                .expect("valid target")
+        })
+        .reduce(lowest_common_multiplier)
+        .expect("at least one key")
 }
 
 fn process(input: &str) -> Result<usize> {
@@ -104,33 +134,23 @@ mod tests {
     use super::*;
 
     #[test]
-    fn full_test_1() {
-        let input = "RL
+    fn full_test() {
+        let input = "LR
 
-AAA = (BBB, CCC)
-BBB = (DDD, EEE)
-CCC = (ZZZ, GGG)
-DDD = (DDD, DDD)
-EEE = (EEE, EEE)
-GGG = (GGG, GGG)
-ZZZ = (ZZZ, ZZZ)";
-
-        assert_eq!(process(input).unwrap(), 2);
-    }
-
-    #[test]
-
-    fn full_test_2() {
-        let input = "LLR
-
-AAA = (BBB, BBB)
-BBB = (AAA, ZZZ)
-ZZZ = (ZZZ, ZZZ)";
+11A = (11B, XXX)
+11B = (XXX, 11Z)
+11Z = (11B, XXX)
+22A = (22B, XXX)
+22B = (22C, 22C)
+22C = (22Z, 22Z)
+22Z = (22B, 22B)
+XXX = (XXX, XXX)";
 
         assert_eq!(process(input).unwrap(), 6);
     }
 }
 
+#[allow(unused)]
 pub fn main() -> Result<()> {
     let input = "LLRLRRLLRLRRLLRLRRLRRRLRLRLRRRLLRLRRRLRLRRRLRLRLLLRRLRLRLLRLRRLRRRLRRRLLRRLRLRRRLRRLRRRLRLLRRLRRRLRRRLRRLRLRRLLLRLRLLRRRLRRLLRLRLRRLLRLRRLLRLRRLRRLLRRRLRLRLRRRLLRRRLRRLRRRLRRRLRLRRRLRRLLLRRRLRLLLRRRLRLLRLLRRRLLRRLRRRLRRRLRLLRLRLRRRLLRRLRRRLRRLRLLRRRLRRLRRRLRRRLRRRLRLRRRLRRRLRLRRRR
 
@@ -930,7 +950,7 @@ FNB = (SNS, HRG)
 BKX = (TFD, JVB)";
     let result = process(input)?;
 
-    println!("8.1: {}", result);
+    println!("8.2: {}", result);
 
     Ok(())
 }
