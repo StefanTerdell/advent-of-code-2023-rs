@@ -14,12 +14,39 @@ use nom::{
 enum Cell {
     YPipe,
     XPipe,
-    NEBend,
-    SEBend,
-    NWBend,
-    SWBend,
+    NETurn,
+    SETurn,
+    NWTurn,
+    SWTurn,
     Nothing,
-    Animal,
+    Starting,
+}
+
+impl Cell {
+    fn open_north(&self) -> bool {
+        match self {
+            Cell::Starting | Cell::YPipe | Cell::NETurn | Cell::NWTurn => true,
+            _ => false,
+        }
+    }
+    fn open_south(&self) -> bool {
+        match self {
+            Cell::Starting | Cell::YPipe | Cell::SETurn | Cell::SWTurn => true,
+            _ => false,
+        }
+    }
+    fn open_west(&self) -> bool {
+        match self {
+            Cell::Starting | Cell::XPipe | Cell::NWTurn | Cell::SWTurn => true,
+            _ => false,
+        }
+    }
+    fn open_east(&self) -> bool {
+        match self {
+            Cell::Starting | Cell::XPipe | Cell::NETurn | Cell::SETurn => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
@@ -28,161 +55,152 @@ struct Point {
     y: usize,
 }
 
-type Map = Vec<Vec<(Cell, Option<usize>)>>;
+impl Point {
+    fn next_to(&self, other: &Self) -> bool {
+        (self.x == other.x && (self.y + 1 == other.y || self.y == other.y + 1))
+            || (self.y == other.y && (self.x + 1 == other.x || self.x == other.x + 1))
+    }
+
+    fn north(&self) -> Option<Point> {
+        if self.y > 0 {
+            Some(Point {
+                x: self.x,
+                y: self.y - 1,
+            })
+        } else {
+            None
+        }
+    }
+
+    fn south(&self, max: usize) -> Option<Point> {
+        if self.y < max {
+            Some(Point {
+                x: self.x,
+                y: self.y + 1,
+            })
+        } else {
+            None
+        }
+    }
+
+    fn west(&self) -> Option<Point> {
+        if self.x > 0 {
+            Some(Point {
+                x: self.x - 1,
+                y: self.y,
+            })
+        } else {
+            None
+        }
+    }
+
+    fn east(&self, max: usize) -> Option<Point> {
+        if self.x < max {
+            Some(Point {
+                x: self.x + 1,
+                y: self.y,
+            })
+        } else {
+            None
+        }
+    }
+}
+
+type Map = Vec<Vec<Cell>>;
 
 fn parse(input: &str) -> IResult<&str, Map> {
     separated_list1(
         multispace1,
         many1(alt((
-            value((Cell::YPipe, None), tag("|")),
-            value((Cell::XPipe, None), tag("-")),
-            value((Cell::NEBend, None), tag("L")),
-            value((Cell::SEBend, None), tag("F")),
-            value((Cell::NWBend, None), tag("J")),
-            value((Cell::SWBend, None), tag("7")),
-            value((Cell::Nothing, None), tag(".")),
-            value((Cell::Animal, None), tag("S")),
+            value(Cell::YPipe, tag("|")),
+            value(Cell::XPipe, tag("-")),
+            value(Cell::NETurn, tag("L")),
+            value(Cell::SETurn, tag("F")),
+            value(Cell::NWTurn, tag("J")),
+            value(Cell::SWTurn, tag("7")),
+            value(Cell::Nothing, tag(".")),
+            value(Cell::Starting, tag("S")),
         ))),
     )(input)
 }
 
-fn walk(point: Point, map: &mut Map) -> usize {
-    let mut stack = vec![(point, HashSet::new())];
-    let mut max_steps = 0;
+fn get_loop_length(starting_point: Point, map: &Map) -> usize {
+    let mut path = HashSet::new();
+    let mut point = starting_point.clone();
 
-    while let Some((pos, mut path)) = stack.pop() {
-        let steps = path.len();
-
-        map[pos.y][pos.x].1 = Some(steps);
-
-        path.insert(pos.clone());
-
-        if steps > max_steps {
-            max_steps = steps;
-        }
-
-        if pos.x > 0 {
-            let left = Point {
-                x: pos.x - 1,
-                y: pos.y,
-            };
-
-            if match map[left.y][left.x] {
-                (Cell::XPipe, step) | (Cell::NEBend, step) | (Cell::SEBend, step) => match step {
-                    Some(step) => step > steps,
-                    None => true,
-                },
-                _ => false,
-            } {
-                stack.push((left, path.clone()));
+    loop {
+        if let Some(next) = point.north() {
+            if !path.contains(&next)
+                && map[point.y][point.x].open_north()
+                && map[next.y][next.x].open_south()
+            {
+                path.insert(point);
+                point = next;
+                continue;
             }
         }
 
-        if pos.x < map[pos.y].len() - 1 {
-            let right = Point {
-                x: pos.x + 1,
-                y: pos.y,
-            };
-
-            if match map[right.y][right.x] {
-                (Cell::XPipe, step) | (Cell::NWBend, step) | (Cell::SWBend, step) => match step {
-                    Some(step) => step > steps,
-                    None => true,
-                },
-                _ => false,
-            } {
-                stack.push((right, path.clone()));
+        if let Some(next) = point.south(map.len() - 1) {
+            if !path.contains(&next)
+                && map[point.y][point.x].open_south()
+                && map[next.y][next.x].open_north()
+            {
+                path.insert(point);
+                point = next;
+                continue;
             }
         }
 
-        if pos.y > 0 {
-            let up = Point {
-                x: pos.x,
-                y: pos.y - 1,
-            };
-
-            if match map[up.y][up.x] {
-                (Cell::YPipe, step) | (Cell::SEBend, step) | (Cell::SWBend, step) => match step {
-                    Some(step) => step > steps,
-                    None => true,
-                },
-                _ => false,
-            } {
-                stack.push((up, path.clone()));
+        if let Some(next) = point.west() {
+            if !path.contains(&next)
+                && map[point.y][point.x].open_west()
+                && map[next.y][next.x].open_east()
+            {
+                path.insert(point);
+                point = next;
+                continue;
             }
         }
 
-        if pos.y < map.len() - 1 {
-            let down = Point {
-                x: pos.x,
-                y: pos.y + 1,
-            };
-
-            if match map[down.y][down.x] {
-                (Cell::YPipe, step) | (Cell::NEBend, step) | (Cell::NWBend, step) => match step {
-                    Some(step) => step > steps,
-                    None => true,
-                },
-                _ => false,
-            } {
-                stack.push((down, path.clone()));
+        if let Some(next) = point.east(map[point.y].len() - 1) {
+            if !path.contains(&next)
+                && map[point.y][point.x].open_east()
+                && map[next.y][next.x].open_west()
+            {
+                path.insert(point);
+                point = next;
+                continue;
             }
+        }
+
+        if point.next_to(&starting_point) {
+            break;
         }
     }
 
-    max_steps
-}
-
-fn print(map: &Map) {
-    for row in map.iter() {
-        println!(
-            "{:?}",
-            row.iter().map(|x| x.1.unwrap_or(0)).collect::<Vec<usize>>()
-        );
-    }
-    for row in map.iter() {
-        println!("{:?}", row.iter().map(|x| x.0).collect::<Vec<Cell>>());
-    }
-}
-
-fn max(map: &Map) -> usize {
-    map.iter().fold(0, |m, c| {
-        c.iter().fold(m, |m, c| {
-            if let Some(c) = c.1 {
-                if c > m {
-                    c
-                } else {
-                    m
-                }
-            } else {
-                m
-            }
-        })
-    })
+    (path.len() + 1) / 2
 }
 
 fn process(input: &str) -> Result<usize> {
-    let (_, mut map) = parse(input).map_err(|e| e.to_owned())?;
+    let (_, map) = parse(input).map_err(|e| e.to_owned())?;
 
-    let point = map
+    let starting_point = map
         .iter()
         .enumerate()
         .find_map(|(y, line)| {
             if let Some(x) =
                 line.iter()
                     .enumerate()
-                    .find_map(|(x, c)| if c.0 == Cell::Animal { Some(x) } else { None })
+                    .find_map(|(x, c)| if c == &Cell::Starting { Some(x) } else { None })
             {
                 Some(Point { x, y })
             } else {
                 None
             }
         })
-        .expect("an animal");
+        .expect("a starting point");
 
-    walk(point, &mut map);
-
-    Ok(max(&map))
+    Ok(get_loop_length(starting_point, &map))
 }
 
 #[cfg(test)]
